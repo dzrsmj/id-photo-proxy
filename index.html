@@ -295,8 +295,8 @@ var _hmt = _hmt || [];
   <div class="card" id="uploadCard">
     <div class="card-title">📷 上传照片</div>
 
-    <!-- Quality toggle -->
-    <div class="quality-toggle">
+    <!-- Quality toggle (only shown with ?pro) -->
+    <div class="quality-toggle" id="qualityToggle" style="display:none;">
       <button class="q-btn active" id="qFree" onclick="setQuality('free')">🆓 标准</button>
       <button class="q-btn" id="qPro" onclick="setQuality('pro')">✨ 高清</button>
     </div>
@@ -640,19 +640,24 @@ function showToast(msg) {
   });
 }
 
-// Init: restore saved settings
+// Init: show pro features only with ?pro param
+const IS_PRO = window.location.search.includes('pro');
+
 (function init() {
-  const saved = localStorage.getItem('idphoto_quality');
-  if (saved === 'pro') {
-    quality = 'pro';
-    document.getElementById('qFree').classList.remove('active');
-    document.getElementById('qPro').classList.add('active');
-    document.getElementById('proSettings').style.display = '';
-    document.getElementById('uploadHint').innerHTML =
-      '点击上传或拍照<br><em>照片上传至 remove.bg 处理（更精准）</em>';
+  if (IS_PRO) {
+    document.getElementById('qualityToggle').style.display = 'flex';
+    const saved = localStorage.getItem('idphoto_quality');
+    if (saved === 'pro') {
+      quality = 'pro';
+      document.getElementById('qFree').classList.remove('active');
+      document.getElementById('qPro').classList.add('active');
+      document.getElementById('proSettings').style.display = '';
+      document.getElementById('uploadHint').innerHTML =
+        '点击上传或拍照<br><em>照片上传至 remove.bg 处理（更精准）</em>';
+    }
+    const key = localStorage.getItem('idphoto_apikey');
+    if (key) document.getElementById('apiKey').value = key;
   }
-  const key = localStorage.getItem('idphoto_apikey');
-  if (key) document.getElementById('apiKey').value = key;
 })();
 </script>
 </body>
