@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI证件照</title>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?d45922a4f146749aa40606104912ac36";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --text: #e0e0e0;
+    --sub: #888;
+    --border: #2a2a2a;
+    --accent: #f0b90b;
+    --green: #4caf50;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .container { max-width: 420px; margin: 0 auto; }
+
+  .header { text-align: center; margin: 20px 0 24px; }
+  .header h1 { font-size: 1.4rem; font-weight: 700; }
+  .header .sub { color: var(--sub); font-size: 0.8rem; margin-top: 4px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .card-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 12px; }
+
+  /* Upload */
+  /* Quality toggle */
+  .quality-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .q-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .q-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Pro settings */
+  .pro-settings { margin-bottom: 12px; }
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+  .input-row input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.8rem;
+    outline: none;
+  }
+  .input-row input:focus { border-color: var(--accent); }
+  .btn-sm {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .api-hint {
+    font-size: 0.7rem;
+    color: var(--sub);
+    margin-top: 6px;
+  }
+  .api-hint a { color: var(--accent); }
+
+  /* Photo tips */
+  .tips {
+    background: rgba(240,185,11,0.06);
+    border: 1px solid rgba(240,185,11,0.2);
+    border-radius: 10px;
+    padding: 14px 16px 10px;
+    margin-bottom: 14px;
+    font-size: 0.78rem;
+    line-height: 1.7;
+  }
+  .tip-title { font-weight: 600; margin-bottom: 4px; }
+  .tip-item { color: var(--sub); }
+  .tip-toggle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.7rem;
+    cursor: pointer;
+    padding: 4px 0 0;
+    margin-top: 4px;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .upload-zone:hover { border-color: var(--accent); }
+  .upload-zone .icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .upload-zone .hint { color: var(--sub); font-size: 0.85rem; }
+  .upload-zone .hint em { color: var(--accent); font-style: normal; }
+  .upload-zone input { display: none; }
+
+  /* Preview */
+  .preview-area {
+    display: none;
+    text-align: center;
+  }
+  .preview-area.show { display: block; }
+
+  .preview-wrap {
+    position: relative;
+    display: inline-block;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: repeating-conic-gradient(#333 0% 25%, #2a2a2a 0% 50%) 50% / 16px 16px;
+  }
+  .preview-wrap canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Controls */
+  .control-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .tag-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .chip.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .chip:active { transform: scale(0.96); }
+
+  .chip.color {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    padding: 0;
+    position: relative;
+  }
+  .chip.color.active::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+  .chip.white { background: #fff; }
+  .chip.blue { background: #438EDB; }
+  .chip.red { background: #D32F2F; }
+  .chip.gray { background: #bbb; }
+
+  .label {
+    font-size: 0.75rem;
+    color: var(--sub);
+    display: block;
+    margin-bottom: 6px;
+    margin-top: 10px;
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 30px 0;
+  }
+  .loading.show { display: block; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading .msg { color: var(--sub); font-size: 0.85rem; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.accent {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    z-index: 999;
+    animation: toastIn 0.3s, toastOut 0.3s 1.7s forwards;
+    pointer-events: none;
+  }
+  @keyframes toastIn { from { opacity: 0; top: 0; } to { opacity: 1; top: 20px; } }
+  @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+  .footer { text-align: center; color: var(--sub); font-size: 0.7rem; margin: 20px 0 30px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>📸 AI证件照</h1>
+    <div class="sub">上传照片 · AI抠图 · 换背景 · 下载</div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card" id="uploadCard">
+    <div class="card-title">📷 上传照片</div>
+
+    <!-- Quality toggle -->
+    <div class="quality-toggle">
+      <button class="q-btn active" id="qFree" onclick="setQuality('free')">🆓 标准</button>
+      <button class="q-btn" id="qPro" onclick="setQuality('pro')">✨ 高清</button>
+    </div>
+
+    <!-- Pro API key -->
+    <div class="pro-settings" id="proSettings" style="display:none;">
+      <div class="input-row">
+        <input type="password" id="apiKey" placeholder="输入 remove.bg API Key" autocomplete="off">
+        <button class="btn-sm" onclick="saveApiKey()">保存</button>
+      </div>
+      <div class="api-hint">免费注册即得 50次/月：<a href="https://www.remove.bg/api" target="_blank">remove.bg/api</a></div>
+    </div>
+
+    <div class="tips" id="photoTips">
+      <div class="tip-title">💡 拍出好效果的3个要点</div>
+      <div class="tip-item">✅ 纯色背景（白墙最佳），光线均匀</div>
+      <div class="tip-item">✅ 正面拍照，头发不要遮脸</div>
+      <div class="tip-item">✅ 与背景保持距离，避免身体阴影</div>
+      <button class="tip-toggle" onclick="toggleTips()">收起 ▲</button>
+    </div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📷</div>
+      <div class="hint" id="uploadHint">点击上传或拍照<br><em>照片仅在本设备处理，不上传服务器（标准模式）</em></div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this)">
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="msg">AI正在抠图中…首次需下载模型(≈40MB)<br><small style="color:#666;">同一设备下次秒开 · 本地测试每次重新打开会重新下载</small></div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-area" id="previewArea">
+    <div class="card">
+      <div class="card-title">👤 预览</div>
+      <div class="preview-wrap" id="previewWrap">
+        <canvas id="previewCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Background color -->
+    <div class="card">
+      <div class="card-title">🎨 背景颜色</div>
+      <div class="tag-group">
+        <button class="chip color white active" data-color="#FFFFFF" onclick="setColor(this,'#FFFFFF')"></button>
+        <button class="chip color blue" data-color="#438EDB" onclick="setColor(this,'#438EDB')"></button>
+        <button class="chip color red" data-color="#D32F2F" onclick="setColor(this,'#D32F2F')"></button>
+        <button class="chip color gray" data-color="#BBBBBB" onclick="setColor(this,'#BBBBBB')"></button>
+      </div>
+    </div>
+
+    <!-- Size -->
+    <div class="card">
+      <div class="card-title">📐 尺寸</div>
+      <div class="tag-group">
+        <button class="chip active" data-w="295" data-h="413" data-label="一寸" onclick="setSize(this,'一寸',295,413)">一寸</button>
+        <button class="chip" data-w="413" data-h="579" data-label="二寸" onclick="setSize(this,'二寸',413,579)">二寸</button>
+        <button class="chip" data-w="390" data-h="567" data-label="小二寸" onclick="setSize(this,'小二寸',390,567)">小二寸</button>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="btn" onclick="reupload()">📷 重新上传</button>
+      <button class="btn accent" id="downloadBtn" onclick="download()">⬇ 下载证件照</button>
+    </div>
+  </div>
+
+  <div class="footer">Built with AI</div>
+</div>
+
+<script type="module">
+import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/+esm';
+
+window._bgRemover = removeBackground;
+
+let originalImg = null;
+let maskImg = null;
+let bgColor = '#FFFFFF';
+let sizeW = 295, sizeH = 413;
+let sizeLabel = '一寸';
+let quality = 'free'; // 'free' | 'pro'
+
+// Quality toggle
+window.setQuality = function(mode) {
+  quality = mode;
+  document.getElementById('qFree').classList.toggle('active', mode === 'free');
+  document.getElementById('qPro').classList.toggle('active', mode === 'pro');
+  document.getElementById('proSettings').style.display = mode === 'pro' ? '' : 'none';
+  const hint = document.getElementById('uploadHint');
+  if (mode === 'pro') {
+    hint.innerHTML = '点击上传或拍照<br><em>照片上传至 remove.bg 处理（更精准）</em>';
+  } else {
+    hint.innerHTML = '点击上传或拍照<br><em>照片仅在本设备处理，不上传服务器</em>';
+  }
+  localStorage.setItem('idphoto_quality', mode);
+};
+
+// Save API key
+window.saveApiKey = function() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return showToast('请输入 API Key');
+  localStorage.setItem('idphoto_apikey', key);
+  showToast('✅ API Key 已保存');
+};
+
+// Expose to global scope
+window.setColor = function(btn, color) {
+  bgColor = color;
+  document.querySelectorAll('.chip.color').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderResult();
+};
+
+window.setSize = function(btn, label, w, h) {
+  sizeLabel = label; sizeW = w; sizeH = h;
+  document.querySelectorAll('.tag-group:last-child .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderResult();
+};
+
+window.toggleTips = function() {
+  const items = document.querySelectorAll('.tip-item');
+  const btn = document.querySelector('.tip-toggle');
+  const hidden = items[0].style.display === 'none';
+  items.forEach(el => el.style.display = hidden ? '' : 'none');
+  btn.textContent = hidden ? '收起 ▲' : '展开拍照技巧 ▼';
+};
+
+window.reupload = function() {
+  originalImg = null; maskImg = null;
+  document.getElementById('uploadCard').style.display = '';
+  document.getElementById('previewArea').classList.remove('show');
+  document.getElementById('fileInput').value = '';
+};
+
+window.download = function() {
+  const canvas = document.getElementById('previewCanvas');
+  const link = document.createElement('a');
+  link.download = 'AI证件照_' + sizeLabel + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('✅ 证件照已下载');
+};
+
+window.handleFile = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    originalImg = new Image();
+    originalImg.onload = async () => {
+      document.getElementById('uploadCard').style.display = 'none';
+      document.getElementById('loading').classList.add('show');
+      updateLoadingMsg();
+
+      try {
+        let resultUrl;
+
+        if (quality === 'pro') {
+          // Paid: remove.bg API
+          resultUrl = await removeBgViaAPI(file);
+        } else {
+          // Free: local model
+          const blob = await removeBackground(e.target.result, {
+            model: 'medium',
+            output: { format: 'image/png' }
+          });
+          resultUrl = URL.createObjectURL(blob);
+        }
+
+        maskImg = new Image();
+        maskImg.onload = () => {
+          document.getElementById('loading').classList.remove('show');
+          document.getElementById('previewArea').classList.add('show');
+          renderResult();
+        };
+        maskImg.src = resultUrl;
+      } catch(err) {
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('uploadCard').style.display = '';
+        const msg = '抠图失败：' + (err.message || err);
+        document.querySelector('#uploadCard .upload-zone .hint').innerHTML =
+          '<span style="color:#e74c3c">' + msg + '</span>，<em>换张照片或切换模式试试</em>';
+        console.error(err);
+      }
+    };
+    originalImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+function updateLoadingMsg() {
+  const msg = document.querySelector('#loading .msg');
+  if (quality === 'pro') {
+    msg.innerHTML = '正在调用 remove.bg 高清抠图…<br><small style="color:#666;">通常只需 3-5 秒</small>';
+  } else {
+    msg.innerHTML = 'AI正在抠图中…首次需下载模型(≈40MB)<br><small style="color:#666;">同一设备下次秒开</small>';
+  }
+}
+
+// Proxy URL — deployed on Vercel, change this after deploying
+const PROXY_URL = 'https://ai-id-photo-seven.vercel.app/api/proxy';
+
+async function removeBgViaAPI(file) {
+  const apiKey = localStorage.getItem('idphoto_apikey');
+  if (!apiKey) throw new Error('请先输入 remove.bg API Key');
+
+  const formData = new FormData();
+  formData.append('image_file', file);
+  formData.append('size', 'auto');
+
+  const resp = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'X-Api-Key': apiKey },
+    body: formData
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    if (resp.status === 402) throw new Error('API 额度已用完');
+    if (resp.status === 403) throw new Error('API Key 无效');
+    throw new Error(err.error || err.errors?.[0]?.title || '请求失败(' + resp.status + ')');
+  }
+
+  const blob = await resp.blob();
+  return URL.createObjectURL(blob);
+}
+
+function renderResult() {
+  if (!maskImg) return;
+  const canvas = document.getElementById('previewCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Calc crop to fit target ratio
+  const targetRatio = sizeW / sizeH;
+  const imgRatio = maskImg.width / maskImg.height;
+
+  let sx, sy, sw, sh;
+  if (imgRatio > targetRatio) {
+    sh = maskImg.height;
+    sw = sh * targetRatio;
+    sx = (maskImg.width - sw) / 2;
+    sy = 0;
+  } else {
+    sw = maskImg.width;
+    sh = sw / targetRatio;
+    sx = 0;
+    sy = (maskImg.height - sh) / 2;
+  }
+
+  const W = sizeW * 2;  // 2x retina
+  const H = sizeH * 2;
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = Math.min(sizeW, 280) + 'px';
+
+  // Step 1: draw cutout to temp canvas
+  const tmp = document.createElement('canvas');
+  tmp.width = W; tmp.height = H;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(maskImg, sx, sy, sw, sh, 0, 0, W, H);
+
+  // Step 2: feather alpha + clean background color spill from edges
+  const imgData = tctx.getImageData(0, 0, W, H);
+  cleanEdges(imgData, W, H, 3);
+  tctx.putImageData(imgData, 0, 0);
+
+  // Step 3: fill background, then draw cleaned image on top
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(tmp, 0, 0);
+}
+
+// Feather alpha + remove background contamination from semi-transparent edges
+function cleanEdges(imgData, w, h, radius) {
+  const data = imgData.data;
+  const orig = new Uint8Array(data);
+  const A = 3;
+
+  // Feather alpha channel
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let sum = 0, count = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+            sum += orig[(ny * w + nx) * 4 + A];
+            count++;
+          }
+        }
+      }
+      data[(y * w + x) * 4 + A] = Math.round(sum / count);
+    }
+  }
+
+  // Color decontamination: for semi-transparent pixels,
+  // sample nearby opaque pixels for foreground reference, push color towards it
+  const searchR = radius + 2;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      const a = data[idx + A];
+      if (a <= 15 || a >= 230) continue;
+
+      let fr = 0, fg = 0, fb = 0, fc = 0;
+      for (let dy = -searchR; dy <= searchR; dy++) {
+        for (let dx = -searchR; dx <= searchR; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+          if (orig[(ny * w + nx) * 4 + A] >= 230) {
+            const ni = (ny * w + nx) * 4;
+            fr += orig[ni]; fg += orig[ni + 1]; fb += orig[ni + 2];
+            fc++;
+          }
+        }
+      }
+      if (fc < 3) continue;
+
+      fr = fr / fc | 0; fg = fg / fc | 0; fb = fb / fc | 0;
+      const t = 1 - a / 255;
+      data[idx]     = data[idx]     * t + fr * (1 - t) | 0;
+      data[idx + 1] = data[idx + 1] * t + fg * (1 - t) | 0;
+      data[idx + 2] = data[idx + 2] * t + fb * (1 - t) | 0;
+    }
+  }
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  t.addEventListener('animationend', (e) => {
+    if (e.animationName === 'toastOut') t.remove();
+  });
+}
+
+// Init: restore saved settings
+(function init() {
+  const saved = localStorage.getItem('idphoto_quality');
+  if (saved === 'pro') {
+    quality = 'pro';
+    document.getElementById('qFree').classList.remove('active');
+    document.getElementById('qPro').classList.add('active');
+    document.getElementById('proSettings').style.display = '';
+    document.getElementById('uploadHint').innerHTML =
+      '点击上传或拍照<br><em>照片上传至 remove.bg 处理（更精准）</em>';
+  }
+  const key = localStorage.getItem('idphoto_apikey');
+  if (key) document.getElementById('apiKey').value = key;
+})();
+</script>
+</body>
+</html>
